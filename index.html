@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="stylesheet" href="https://ssl.gstatic.com/docs/script/css/add-ons1.css">
+    <base target="_top">
+  </head>
+  <body>
+    <div class="sidebar"> 
+      <div class="block form-group">
+        <label for="month">月を入力してください</label> 
+        <select id="month">
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+          <option value="5">5</option>
+          <option value="6">6</option>
+          <option value="7">7</option>
+          <option value="8">8</option>
+          <option value="9">9</option>
+          <option value="10">10</option>
+          <option value="11">11</option>
+          <option value="12">12</option>
+        </select>
+        <label for="sheetName">シート名</label> 
+        <select id="sheetName" onchange="showList(this.value)">
+          <option disabled="" selected>当月のシートを選択してください</option>
+          <? const sheets = data;
+          for (let sheet of sheets) {?>
+            <option value="<?= sheet ?>"><?= sheet ?></option>
+          <?}?>
+        </select> 
+      </div>
+      <div id="result"></div>
+      <div class="block form-group">
+        <label for="list" id="label">送信予定稼働エンジニア</label>
+        <p id="count"></p>
+        <ul id="list"></ul>
+      <div class="block form-group"> 
+        <button class="blue hide" onclick="" id="button">送信</button> 
+      </div>
+    </div>
+    <script>
+      const list = document.getElementById('list');
+      const count = document.getElementById('count');
+      const select = document.getElementById('sheetName');
+      const button = document.getElementById('button');
+      const result = document.getElementById('result');
+      const label = document.getElementById('label');
+      const month = document.getElementById('month');
+
+      function showList(sheetName) {
+        button.classList.add("hide");
+        while(list.firstChild){
+          list.removeChild(list.firstChild);
+        }
+        count.textContent = '';
+        google.script.run.withSuccessHandler(appendList).getList(sheetName);
+      }
+
+      function appendList(array) {
+        let data = JSON.parse(array)[0];
+        const sheetName = JSON.parse(array)[1];
+        while(result.firstChild) {
+          result.removeChild(result.firstChild);
+        }
+        button.textContent = '送信';
+        button.removeAttribute('disabled');
+        const m = month.value;
+        data = data.filter(row => (row[4] !== '' || row[5] !== '') && row[3] !== '済');
+        const regex = /^[a-zA-Z0-9_.+-]+@([a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]*\.)+[a-zA-Z]{2,}$/;
+        data = data.filter(row => regex.test(row[6]));
+        count.textContent = count.textContent + data.length + '名';
+        for(let r of data){
+          const li = document.createElement('li');
+          li.textContent = r[4] + r[5];
+          list.appendChild(li);
+        };
+        if (data.length) {
+          button.classList.add('blue');
+          button.classList.remove("hide");
+        }
+        button.addEventListener('click', () => {
+          button.classList.remove("blue");
+          button.setAttribute('disabled','');
+          button.textContent = "送信中...";
+          google.script.run.withSuccessHandler(onSuccess).sendMail(m, data, sheetName);
+        });
+      }
+
+      function onSuccess() {
+        button.classList.add("hide");
+        const p = document.createElement('p');
+        p.textContent = '送信完了';
+        p.classList.add("h2");
+        result.appendChild(p);
+      }
+    </script> 
+    <style>
+      div { margin: 0 30px; }
+      .hide { display: none; }
+      .h2 { color: #3A8D00; font-size: 24px; }
+    </style> 
+  </body>
+</html>
